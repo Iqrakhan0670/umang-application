@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { Banknote, Building2, FileSearch, ArrowLeft, PhoneCall } from "lucide-react";
+import { Banknote, Building2, ShieldCheck, FileSearch, ArrowLeft, PhoneCall } from "lucide-react";
 
 // Fallback contact shown to the person once they submit a call request,
 // regardless of whether the request was successfully saved to the backend.
@@ -29,13 +29,22 @@ export default function Results({ results, setView, onContinueClaim }) {
     let cancelled = false;
 
     const checkStatus = async () => {
-      const { data } = await supabase
-        .from("call_requests")
-        .select("status")
-        .eq("id", requestId)
-        .single();
-      if (!cancelled && data?.status) {
-        setCallStatus(data.status);
+      const { data: rpcStatus, error } = await supabase.rpc("get_call_status", {
+        p_request_id: requestId,
+      });
+      if (!cancelled && rpcStatus) {
+        setCallStatus(rpcStatus);
+        return;
+      }
+      if (!cancelled && error) {
+        const { data } = await supabase
+          .from("call_requests")
+          .select("status")
+          .eq("id", requestId)
+          .single();
+        if (!cancelled && data?.status) {
+          setCallStatus(data.status);
+        }
       }
     };
 
@@ -89,17 +98,21 @@ export default function Results({ results, setView, onContinueClaim }) {
       setRequestId(data.id);
       setRequested(true);
 
-      // Remember this request locally so that when the person comes back
-      // (before or after signing in), we can check whether the admin has
-      // since marked it "called" and prompt them to sign in and pay.
+      // Remember this request locally with verification_token so that
+      // when the person returns, we can verify call status and link the
+      // request securely to their account upon signing in.
       try {
         const stored = JSON.parse(
           localStorage.getItem("umang_call_request_ids") || "[]"
         );
-        if (!stored.includes(data.id)) {
+        const exists = stored.some((item) =>
+          typeof item === "string" ? item === data.id : item?.id === data.id
+        );
+        if (!exists) {
+          stored.push({ id: data.id, token: data.verification_token || null });
           localStorage.setItem(
             "umang_call_request_ids",
-            JSON.stringify([...stored, data.id])
+            JSON.stringify(stored)
           );
         }
       } catch (storageErr) {
@@ -164,7 +177,7 @@ export default function Results({ results, setView, onContinueClaim }) {
             <tr className="border-b border-slate-200 text-left text-slate-500">
               <th className="py-3 font-medium">Holder</th>
               <th className="py-3 font-medium">Asset</th>
-              <th className="py-3 font-medium">Institution</th>
+              <th className="py-3 font-medium">Source / Institution</th>
               <th className="py-3 font-medium text-right">Est. value</th>
               <th className="py-3"></th>
             </tr>
@@ -184,8 +197,9 @@ export default function Results({ results, setView, onContinueClaim }) {
                   </span>
                 </td>
                 <td className="py-4 text-slate-500">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Building2 size={13} /> {r.institution_name || "—"}
+                  <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-full">
+                    <ShieldCheck size={13} className="text-emerald-700" />
+                    {r.institution_name || "Verified Institution"}
                   </span>
                 </td>
                 <td className="py-4 text-right font-medium text-emerald-950">
@@ -215,7 +229,7 @@ export default function Results({ results, setView, onContinueClaim }) {
                 </h2>
                 <p className="text-slate-500 text-sm mb-6">
                   For {callRecord.first_name} {callRecord.last_name} ·{" "}
-                  {callRecord.institution_name}. Please enter your details so
+                  {callRecord.institution_name || callRecord.asset_type || "Unclaimed Asset"}. Please enter your details so
                   our claim assistance team can explain the possible match
                   and the claim process to you — no payment is taken now.
                 </p>

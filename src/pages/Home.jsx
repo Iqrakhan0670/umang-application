@@ -78,13 +78,22 @@ export default function Home({ setView }) {
   const [hoveredArrow, setHoveredArrow] = useState(null);
 
   useEffect(() => {
-    supabase
-      .from("unclaimed_records")
-      .select("*", { count: "exact", head: true })
-      .then(({ count }) => {
-        setRecordCount(count ?? 0);
+    const fetchCount = async () => {
+      const { data, error } = await supabase.rpc("get_total_records_count");
+      if (!error && data !== null) {
+        setRecordCount(Number(data) || 0);
         setLoading(false);
-      });
+        return;
+      }
+      supabase
+        .from("unclaimed_records")
+        .select("*", { count: "exact", head: true })
+        .then(({ count }) => {
+          setRecordCount(count ?? 0);
+          setLoading(false);
+        });
+    };
+    fetchCount();
   }, []);
 
   return (

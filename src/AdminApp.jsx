@@ -6,9 +6,9 @@ export default function AdminApp() {
   const [session, setSession] = useState(null);
   const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [step, setStep] = useState(1);
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -17,33 +17,19 @@ export default function AdminApp() {
     });
   }, []);
 
-  const sendOtp = async (e) => {
+  const signIn = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
     try {
-      const { error } = await supabase.auth.signInWithOtp({ email: email.trim() });
-      if (error) throw error;
-      setStep(2);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifyOtp = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
-        token: otp.trim(),
-        type: "email",
+        password: password,
       });
       if (error) throw error;
       setSession(data.user);
     } catch (err) {
-      alert("Invalid or expired code.");
+      setError(err.message || "Invalid email or password.");
     } finally {
       setLoading(false);
     }
@@ -63,60 +49,32 @@ export default function AdminApp() {
           </div>
           <p className="text-slate-500 text-sm mb-6">Sign in to continue.</p>
 
-          {step === 1 ? (
-            <form onSubmit={sendOtp} className="space-y-4">
-              <div>
-                <label className="block text-xs uppercase tracking-wide text-slate-400 mb-1.5">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full border-b-2 border-slate-200 bg-transparent py-2 focus:outline-none focus:border-emerald-700 transition"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-full bg-emerald-950 text-white py-3 text-sm font-semibold hover:bg-emerald-900 transition disabled:opacity-50"
-              >
-                {loading ? "Sending…" : "Send code"}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={verifyOtp} className="space-y-4">
-              <div>
-                <label className="block text-xs uppercase tracking-wide text-slate-400 mb-1.5">
-                  Verification code
-                </label>
-                <input
-                  type="text"
-                  maxLength="8"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  placeholder="••••••"
-                  className="w-full border-b-2 border-slate-200 bg-transparent py-2 text-center text-xl tracking-[0.4em] focus:outline-none focus:border-emerald-700 transition"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-full bg-emerald-950 text-white py-3 text-sm font-semibold hover:bg-emerald-900 transition disabled:opacity-50"
-              >
-                {loading ? "Verifying…" : "Verify"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="w-full text-xs text-slate-400 hover:text-emerald-950"
-              >
-                ← Use a different email
-              </button>
-            </form>
-          )}
+          <form onSubmit={signIn} className="space-y-4">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Admin email"
+              className="w-full border-b-2 border-ink/20 bg-transparent py-2 focus:outline-none focus:border-pine"
+            />
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="w-full border-b-2 border-ink/20 bg-transparent py-2 focus:outline-none focus:border-pine"
+            />
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-pine text-parchment py-3 text-sm font-medium hover:bg-pine-light transition disabled:opacity-50"
+            >
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
         </div>
       </div>
     );
