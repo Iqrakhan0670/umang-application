@@ -44,12 +44,12 @@ function HowMatchingWorks() {
   ];
 
   return (
-    <section className="max-w-5xl mx-auto px-6 py-16 border-t border-ink/10">
+    <section className="w-full px-[6vw] lg:px-[8vw] py-16 border-t border-emerald-950/10">
       <div className="text-center mb-12">
-        <h2 className="font-serif text-3xl text-ink mb-2">
+        <h2 className="font-extrabold text-3xl text-emerald-950 mb-2">
           How matching works
         </h2>
-        <p className="text-stone text-sm">
+        <p className="text-emerald-950/60 text-sm">
           A simple, three-step way to see what the registry holds.
         </p>
       </div>
@@ -59,24 +59,28 @@ function HowMatchingWorks() {
           const Icon = s.icon;
           return (
             <div key={s.num} className="relative text-center px-4">
-              <div className="w-14 h-14 rounded-full bg-pine/10 flex items-center justify-center mx-auto mb-5">
-                <Icon size={22} className="text-pine" />
+              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-5">
+                <Icon size={22} className="text-emerald-950" />
               </div>
-              <div className="text-xs tracking-widest text-brass font-medium mb-2">
+              <div className="text-xs tracking-widest text-emerald-700 font-semibold mb-2">
                 {s.num}
               </div>
-              <h3 className="font-serif text-lg text-ink mb-2">{s.title}</h3>
-              <p className="text-sm text-stone leading-relaxed">{s.desc}</p>
+              <h3 className="font-extrabold text-lg text-emerald-950 mb-2">
+                {s.title}
+              </h3>
+              <p className="text-sm text-emerald-950/60 leading-relaxed">
+                {s.desc}
+              </p>
 
               {i < steps.length - 1 && (
-                <div className="hidden sm:block absolute top-7 left-[calc(50%+40px)] right-[calc(-50%+40px)] border-t border-dashed border-ink/15" />
+                <div className="hidden sm:block absolute top-7 left-[calc(50%+40px)] right-[calc(-50%+40px)] border-t border-dashed border-emerald-950/15" />
               )}
             </div>
           );
         })}
       </div>
 
-      <p className="text-center text-xs text-stone/80 mt-12 max-w-md mx-auto leading-relaxed">
+      <p className="text-center text-xs text-emerald-950/40 mt-12 max-w-md mx-auto leading-relaxed">
         A name match does not confirm ownership. Ownership is verified during
         the claim process.
       </p>
@@ -110,32 +114,34 @@ function FoundMatchSection() {
   ];
 
   return (
-    <section className="bg-parchment-dim/40 border-t border-ink/10">
-      <div className="max-w-5xl mx-auto px-6 py-16">
+    <section className="bg-emerald-50/30 border-t border-emerald-950/10">
+      <div className="w-full px-[6vw] lg:px-[8vw] py-16">
         <div className="text-center mb-12">
-          <h2 className="font-serif text-3xl text-ink mb-2">
+          <h2 className="font-extrabold text-3xl text-emerald-950 mb-2">
             Found a possible match?
           </h2>
-          <p className="text-stone text-sm">
+          <p className="text-emerald-950/60 text-sm">
             Here's what happens next, one step at a time.
           </p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {cards.map((c, i) => {
+          {cards.map((c) => {
             const Icon = c.icon;
             return (
               <div
                 key={c.title}
-                className="bg-parchment rounded-2xl border border-ink/10 shadow-sm px-6 py-7 text-center hover:shadow-md transition"
+                className="bg-white rounded-2xl border border-emerald-950/10 shadow-sm px-6 py-7 text-center hover:shadow-md hover:border-emerald-700/30 transition"
               >
-                <div className="w-11 h-11 rounded-full bg-pine/10 flex items-center justify-center mx-auto mb-4">
-                  <Icon size={18} className="text-pine" />
+                <div className="w-11 h-11 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Icon size={18} className="text-emerald-950" />
                 </div>
-                <h3 className="font-serif text-base text-ink mb-1.5">
+                <h3 className="font-extrabold text-base text-emerald-950 mb-1.5">
                   {c.title}
                 </h3>
-                <p className="text-xs text-stone leading-relaxed">{c.desc}</p>
+                <p className="text-xs text-emerald-950/60 leading-relaxed">
+                  {c.desc}
+                </p>
               </div>
             );
           })}
@@ -155,18 +161,23 @@ function BeforeYouSearch() {
   ];
 
   return (
-    <section className="max-w-5xl mx-auto px-6 py-14 border-t border-ink/10">
-      <div className="max-w-2xl mx-auto bg-parchment rounded-2xl border border-ink/10 shadow-sm px-8 py-8">
+    <section className="w-full px-[6vw] lg:px-[8vw] py-14 border-t border-emerald-950/10">
+      <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-emerald-950/10 shadow-sm px-8 py-8">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 rounded-full bg-brass/10 flex items-center justify-center shrink-0">
-            <Info size={16} className="text-brass" />
+          <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+            <Info size={16} className="text-emerald-950" />
           </div>
-          <h3 className="font-serif text-xl text-ink">Before you search</h3>
+          <h3 className="font-extrabold text-xl text-emerald-950">
+            Before you search
+          </h3>
         </div>
         <ul className="space-y-3">
           {items.map((item) => (
-            <li key={item} className="flex items-start gap-3 text-sm text-stone">
-              <span className="w-1.5 h-1.5 rounded-full bg-pine mt-2 shrink-0" />
+            <li
+              key={item}
+              className="flex items-start gap-3 text-sm text-emerald-950/70"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-700 mt-2 shrink-0" />
               {item}
             </li>
           ))}
@@ -177,27 +188,27 @@ function BeforeYouSearch() {
 }
 
 /* ---------- Privacy & Security ---------- */
-function PrivacySection() {
+function PrivacySection({ setView }) {
   return (
-    <section className="max-w-5xl mx-auto px-6 py-6">
-      <div className="max-w-2xl mx-auto bg-pine/5 border border-pine/15 rounded-2xl px-8 py-8 text-center">
-        <div className="w-11 h-11 rounded-full bg-pine/10 flex items-center justify-center mx-auto mb-4">
-          <Lock size={18} className="text-pine" />
+    <section className="w-full px-[6vw] lg:px-[8vw] py-6">
+      <div className="max-w-2xl mx-auto bg-emerald-50/40 border border-emerald-700/20 rounded-2xl px-8 py-8 text-center">
+        <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center mx-auto mb-4">
+          <Lock size={18} className="text-emerald-950" />
         </div>
-        <h3 className="font-serif text-xl text-ink mb-2">
+        <h3 className="font-extrabold text-xl text-emerald-950 mb-2">
           Your privacy matters
         </h3>
-        <p className="text-sm text-stone leading-relaxed mb-4">
+        <p className="text-sm text-emerald-950/60 leading-relaxed mb-4">
           Your name is used only to perform the requested registry search.
           Sensitive financial information should not be displayed in public
           search results.
         </p>
-        <a
-          href="/privacy"
-          className="text-sm text-pine font-medium hover:text-pine-light transition inline-flex items-center gap-1"
+        <button
+          onClick={() => setView("privacy")}
+          className="text-sm text-emerald-950 font-semibold hover:text-emerald-700 transition inline-flex items-center gap-1"
         >
           View Privacy Policy →
-        </a>
+        </button>
       </div>
     </section>
   );
@@ -231,14 +242,14 @@ function FAQSection() {
   const [open, setOpen] = useState(null);
 
   return (
-    <section className="max-w-3xl mx-auto px-6 py-16 border-t border-ink/10">
+    <section className="max-w-3xl mx-auto px-6 py-16 border-t border-emerald-950/10">
       <div className="text-center mb-10">
-        <h2 className="font-serif text-3xl text-ink mb-2">
+        <h2 className="font-extrabold text-3xl text-emerald-950 mb-2">
           Frequently asked questions
         </h2>
       </div>
 
-      <div className="divide-y divide-ink/10 border-t border-b border-ink/10">
+      <div className="divide-y divide-emerald-950/10 border-t border-b border-emerald-950/10">
         {faqs.map((f, i) => {
           const isOpen = open === i;
           return (
@@ -247,18 +258,18 @@ function FAQSection() {
                 onClick={() => setOpen(isOpen ? null : i)}
                 className="w-full flex items-center justify-between text-left py-5 gap-4"
               >
-                <span className="text-sm sm:text-base text-ink font-medium">
+                <span className="text-sm sm:text-base text-emerald-950 font-medium">
                   {f.q}
                 </span>
                 <ChevronDown
                   size={16}
-                  className={`text-stone shrink-0 transition-transform ${
+                  className={`text-emerald-700 shrink-0 transition-transform ${
                     isOpen ? "rotate-180" : ""
                   }`}
                 />
               </button>
               {isOpen && (
-                <p className="text-sm text-stone leading-relaxed pb-5 pr-8">
+                <p className="text-sm text-emerald-950/60 leading-relaxed pb-5 pr-8">
                   {f.a}
                 </p>
               )}
@@ -280,16 +291,16 @@ function TrustStrip() {
   ];
 
   return (
-    <section className="border-t border-ink/10 bg-parchment-dim/40">
-      <div className="max-w-5xl mx-auto px-6 py-8 flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
+    <section className="border-t border-emerald-950/10 bg-emerald-50/30">
+      <div className="w-full px-[6vw] lg:px-[8vw] py-8 flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
         {items.map((it) => {
           const Icon = it.icon;
           return (
             <div
               key={it.label}
-              className="flex items-center gap-2 text-xs sm:text-sm text-stone"
+              className="flex items-center gap-2 text-xs sm:text-sm text-emerald-950/70"
             >
-              <Icon size={14} className="text-pine" />
+              <Icon size={14} className="text-emerald-700" />
               {it.label}
             </div>
           );
@@ -302,6 +313,7 @@ function TrustStrip() {
 export default function Search({ setView, setResults }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [mobile, setMobile] = useState("");
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -338,20 +350,20 @@ export default function Search({ setView, setResults }) {
   };
 
   return (
-    <div>
-      <div className="max-w-4xl mx-auto px-6 py-20 grid sm:grid-cols-5 gap-16">
+    <div className="bg-white">
+      <div className="w-full px-[6vw] lg:px-[8vw] py-20 grid sm:grid-cols-5 gap-16">
         <div className="sm:col-span-3">
-          <h1 className="font-serif text-4xl text-ink mb-2">
+          <h1 className="font-extrabold text-4xl text-emerald-950 mb-2">
             Search the registry
           </h1>
-          <p className="text-stone mb-10">
+          <p className="text-emerald-950/60 mb-10">
             Free to search. No account needed to see results.
           </p>
 
           <form onSubmit={handleSearch} className="space-y-6">
             <div className="grid sm:grid-cols-2 gap-6">
               <div>
-                <label className="block text-xs uppercase tracking-wide text-stone mb-2">
+                <label className="block text-xs uppercase tracking-wide text-emerald-950/50 mb-2">
                   First name
                 </label>
                 <input
@@ -359,11 +371,11 @@ export default function Search({ setView, setResults }) {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Rahul"
-                  className="w-full border-b-2 border-ink/20 bg-transparent py-2 text-lg focus:outline-none focus:border-pine transition"
+                  className="w-full border-b-2 border-emerald-950/15 bg-transparent py-2 text-lg focus:outline-none focus:border-emerald-700 transition"
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wide text-stone mb-2">
+                <label className="block text-xs uppercase tracking-wide text-emerald-950/50 mb-2">
                   Last name
                 </label>
                 <input
@@ -371,28 +383,46 @@ export default function Search({ setView, setResults }) {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Sharma"
-                  className="w-full border-b-2 border-ink/20 bg-transparent py-2 text-lg focus:outline-none focus:border-pine transition"
+                  className="w-full border-b-2 border-emerald-950/15 bg-transparent py-2 text-lg focus:outline-none focus:border-emerald-700 transition"
                 />
               </div>
             </div>
 
-            <label className="flex items-start gap-3 text-sm text-stone cursor-pointer">
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-emerald-950/50 mb-2">
+                Mobile number
+              </label>
+              <input
+                type="tel"
+                maxLength="10"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                placeholder="98765 43210"
+                className="w-full border-b-2 border-emerald-950/15 bg-transparent py-2 text-lg focus:outline-none focus:border-emerald-700 transition"
+              />
+              <p className="text-xs text-emerald-950/40 mt-1.5">
+                Enter the mobile number linked to the account or asset — the
+                same number that's registered wherever this was held.
+              </p>
+            </div>
+
+            <label className="flex items-start gap-3 text-sm text-emerald-950/60 cursor-pointer">
               <input
                 type="checkbox"
                 checked={consent}
                 onChange={(e) => setConsent(e.target.checked)}
-                className="mt-1"
+                className="mt-1 accent-emerald-700"
               />
               I authorise UMANG to search its records using this name, under
               the Digital Personal Data Protection (DPDP) Act, 2023.
             </label>
 
-            {error && <p className="text-clay text-sm">{error}</p>}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
 
             <button
               type="submit"
               disabled={loading}
-              className="bg-pine text-parchment px-7 py-3.5 text-sm font-medium hover:bg-pine-light transition disabled:opacity-50 flex items-center gap-2"
+              className="rounded-full bg-emerald-950 text-white px-7 py-3.5 text-sm font-semibold hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
             >
               <SearchIcon size={15} />
               {loading ? "Searching…" : "Search"}
@@ -400,29 +430,29 @@ export default function Search({ setView, setResults }) {
           </form>
         </div>
 
-        <div className="sm:col-span-2 border-l border-ink/10 pl-10 hidden sm:block">
-          <h3 className="text-xs uppercase tracking-wide text-stone mb-4">
+        <div className="sm:col-span-2 border-l border-emerald-950/10 pl-10 hidden sm:block">
+          <h3 className="text-xs uppercase tracking-wide text-emerald-950/50 mb-4">
             What we search
           </h3>
-          <ul className="space-y-4 text-sm text-stone">
+          <ul className="space-y-4 text-sm text-emerald-950/70">
             <li className="flex items-center gap-3">
-              <Landmark size={16} className="text-brass shrink-0" />
+              <Landmark size={16} className="text-emerald-700 shrink-0" />
               Bank deposits gone dormant
             </li>
             <li className="flex items-center gap-3">
-              <TrendingUp size={16} className="text-brass shrink-0" />
+              <TrendingUp size={16} className="text-emerald-700 shrink-0" />
               Unclaimed mutual fund dividends & redemptions
             </li>
             <li className="flex items-center gap-3">
-              <ShieldCheck size={16} className="text-brass shrink-0" />
+              <ShieldCheck size={16} className="text-emerald-700 shrink-0" />
               Matured, unclaimed insurance policies
             </li>
             <li className="flex items-center gap-3">
-              <FileStack size={16} className="text-brass shrink-0" />
+              <FileStack size={16} className="text-emerald-700 shrink-0" />
               IEPF unclaimed shares & company dividends
             </li>
           </ul>
-          <p className="text-xs text-stone mt-8 leading-relaxed">
+          <p className="text-xs text-emerald-950/50 mt-8 leading-relaxed">
             A match means the record looks like yours by name. Ownership is
             confirmed during the claim process — matches aren't a guarantee.
           </p>
@@ -433,10 +463,10 @@ export default function Search({ setView, setResults }) {
       <HowMatchingWorks />
       <FoundMatchSection />
       <BeforeYouSearch />
-      <PrivacySection />
+      <PrivacySection setView={setView} />
       <FAQSection />
 
-      <p className="max-w-3xl mx-auto px-6 text-center text-xs text-stone/70 pb-10 leading-relaxed">
+      <p className="max-w-3xl mx-auto px-6 text-center text-xs text-emerald-950/40 pb-10 leading-relaxed">
         Independent unclaimed asset search & claim assistance. Not affiliated
         with any government body or regulator.
       </p>

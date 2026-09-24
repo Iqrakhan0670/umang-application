@@ -2,13 +2,13 @@ import React from "react";
 
 export default function Terms() {
   return (
-    <div className="max-w-2xl mx-auto px-6 py-20">
-      <h1 className="font-serif text-4xl text-ink mb-2">Terms & Conditions</h1>
-      <p className="text-stone text-sm mb-10">Last updated: [DATE]</p>
+    <div className="max-w-2xl mx-auto px-6 py-20 bg-white">
+      <h1 className="font-extrabold text-4xl text-emerald-950 mb-2">Terms & Conditions</h1>
+      <p className="text-slate-500 text-sm mb-10">Last updated: [DATE]</p>
 
-      <div className="space-y-8 text-sm text-stone leading-relaxed">
+      <div className="space-y-8 text-sm text-slate-500 leading-relaxed">
         <div>
-          <h2 className="font-medium text-ink mb-2">1. Who we are</h2>
+          <h2 className="font-semibold text-emerald-950 mb-2">1. Who we are</h2>
           <p>
             UMANG is an independent service that helps you search for
             potential unclaimed financial assets and assists with the
@@ -17,7 +17,7 @@ export default function Terms() {
           </p>
         </div>
         <div>
-          <h2 className="font-medium text-ink mb-2">2. Search results</h2>
+          <h2 className="font-semibold text-emerald-950 mb-2">2. Search results</h2>
           <p>
             Search results are indicative and based on name matching.
             A result appearing in your search does not guarantee that the
@@ -26,7 +26,7 @@ export default function Terms() {
           </p>
         </div>
         <div>
-          <h2 className="font-medium text-ink mb-2">3. Fees</h2>
+          <h2 className="font-semibold text-emerald-950 mb-2">3. Fees</h2>
           <p>
             Searching and viewing results is free. If you choose to
             proceed with Claim Assistance, a one-time, non-refundable
@@ -38,7 +38,7 @@ export default function Terms() {
           </p>
         </div>
         <div>
-          <h2 className="font-medium text-ink mb-2">4. No guarantee of recovery</h2>
+          <h2 className="font-semibold text-emerald-950 mb-2">4. No guarantee of recovery</h2>
           <p>
             UMANG assists with the claim process but cannot guarantee that
             any claim will be successful, as final approval rests with the
@@ -46,7 +46,7 @@ export default function Terms() {
           </p>
         </div>
         <div>
-          <h2 className="font-medium text-ink mb-2">5. Cancellation</h2>
+          <h2 className="font-semibold text-emerald-950 mb-2">5. Cancellation</h2>
           <p>
             You may withdraw a claim at any point before recovery is
             completed. The ₹299 Claim Assistance Fee is non-refundable
@@ -54,7 +54,7 @@ export default function Terms() {
           </p>
         </div>
         <div>
-          <h2 className="font-medium text-ink mb-2">6. Governing law</h2>
+          <h2 className="font-semibold text-emerald-950 mb-2">6. Governing law</h2>
           <p>
             [To be filled in — governing jurisdiction, dispute resolution
             process.]
@@ -62,7 +62,7 @@ export default function Terms() {
         </div>
       </div>
 
-      <p className="mt-12 text-xs text-stone border-t border-ink/10 pt-6">
+      <p className="mt-12 text-xs text-slate-400 border-t border-slate-200 pt-6">
         This is a draft policy. It should be reviewed by a qualified legal
         professional before the site goes live, and the bracketed sections
         completed.
