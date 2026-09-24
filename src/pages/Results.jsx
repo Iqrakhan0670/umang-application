@@ -2,6 +2,11 @@ import React, { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { Banknote, Building2, FileSearch, ArrowLeft, PhoneCall } from "lucide-react";
 
+// Fallback contact shown to the person once they submit a call request,
+// regardless of whether the request was successfully saved to the backend.
+const CONTACT_NAME = "Pranali Waghode";
+const CONTACT_PHONE = "8692956949";
+
 export default function Results({ results, setView, onContinueClaim }) {
   const [callRecord, setCallRecord] = useState(null);
   const [fullName, setFullName] = useState("");
@@ -54,8 +59,12 @@ export default function Results({ results, setView, onContinueClaim }) {
       setRequestId(data.id);
       setRequested(true);
     } catch (err) {
+      // Even if saving the request fails (e.g. backend/table issue), don't
+      // block the person with an error — still show the confirmation screen
+      // with a direct contact so they can move forward.
       console.error(err);
-      alert("Could not submit your request. Please try again.");
+      setRequestId(null);
+      setRequested(true);
     } finally {
       setSubmitting(false);
     }
@@ -68,13 +77,6 @@ export default function Results({ results, setView, onContinueClaim }) {
     setEmail("");
     setRequested(false);
     setRequestId(null);
-  };
-
-  // "Continue" — the person wants to sign in / register so this request
-  // (and any future ones) can be tracked and, once called, taken forward.
-  const handleContinue = () => {
-    onContinueClaim?.(requestId);
-    closeCallForm();
   };
 
   return (
@@ -237,28 +239,34 @@ export default function Results({ results, setView, onContinueClaim }) {
                   Request received
                 </h2>
                 <p className="text-slate-500 text-sm leading-relaxed mb-2">
-                  Our team will call you shortly to explain this asset, the
-                  claim process, required documents and applicable charges —
-                  no payment is taken now.
+                  Your request has been noted for this asset.
                 </p>
-                <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                  Want to track this request and continue with claim
-                  assistance afterwards? Sign in or create a free account —
-                  or come back to it later, no pressure.
-                </p>
+                <div className="bg-emerald-50 rounded-xl px-4 py-3 mb-6 text-sm text-emerald-950">
+                  To proceed further with the claim process, required
+                  documents, please call{" "}
+                  <span className="font-semibold">{CONTACT_NAME}</span> at{" "}
+                  <a
+                    href={`tel:${CONTACT_PHONE}`}
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    {CONTACT_PHONE}
+                  </a>
+                  .
+                </div>
                 <div className="flex gap-3">
                   <button
                     onClick={closeCallForm}
                     className="flex-1 rounded-full border border-slate-200 py-3 text-sm hover:border-slate-300 transition"
                   >
-                    Not now
+                    Close
                   </button>
-                  <button
-                    onClick={handleContinue}
-                    className="flex-1 rounded-full bg-emerald-950 text-white py-3 text-sm font-semibold hover:bg-emerald-900 transition"
+                  <a
+                    href={`tel:${CONTACT_PHONE}`}
+                    className="flex-1 rounded-full bg-emerald-950 text-white py-3 text-sm font-semibold hover:bg-emerald-900 transition flex items-center justify-center gap-2"
                   >
-                    Continue
-                  </button>
+                    <PhoneCall size={14} />
+                    Call now
+                  </a>
                 </div>
               </div>
             )}
