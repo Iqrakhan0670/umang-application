@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { Banknote, Building2, FileSearch, ArrowLeft, PhoneCall } from "lucide-react";
 
@@ -15,14 +15,44 @@ export default function Results({ results, setView, onContinueClaim }) {
   const [submitting, setSubmitting] = useState(false);
   const [requested, setRequested] = useState(false);
   const [requestId, setRequestId] = useState(null);
+  const [callStatus, setCallStatus] = useState("requested");
 
   const records = results?.records || [];
+
+  // While the confirmation screen is open with a real request id, keep
+  // checking whether the admin has marked the call "called" — so this
+  // same screen can switch itself from "call us" to "sign in & pay"
+  // without the person needing to reload the page.
+  useEffect(() => {
+    if (!requested || !requestId) return;
+
+    let cancelled = false;
+
+    const checkStatus = async () => {
+      const { data } = await supabase
+        .from("call_requests")
+        .select("status")
+        .eq("id", requestId)
+        .single();
+      if (!cancelled && data?.status) {
+        setCallStatus(data.status);
+      }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [requested, requestId]);
 
   // No login required to open the Claim Assistance form.
   const openCallForm = (record) => {
     setCallRecord(record);
     setRequested(false);
     setRequestId(null);
+    setCallStatus("requested");
   };
 
   const submitCallRequest = async (e) => {
@@ -58,6 +88,23 @@ export default function Results({ results, setView, onContinueClaim }) {
       if (error) throw error;
       setRequestId(data.id);
       setRequested(true);
+
+      // Remember this request locally so that when the person comes back
+      // (before or after signing in), we can check whether the admin has
+      // since marked it "called" and prompt them to sign in and pay.
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem("umang_call_request_ids") || "[]"
+        );
+        if (!stored.includes(data.id)) {
+          localStorage.setItem(
+            "umang_call_request_ids",
+            JSON.stringify([...stored, data.id])
+          );
+        }
+      } catch (storageErr) {
+        console.error(storageErr);
+      }
     } catch (err) {
       // Even if saving the request fails (e.g. backend/table issue), don't
       // block the person with an error — still show the confirmation screen
@@ -77,6 +124,7 @@ export default function Results({ results, setView, onContinueClaim }) {
     setEmail("");
     setRequested(false);
     setRequestId(null);
+    setCallStatus("requested");
   };
 
   return (
@@ -230,6 +278,36 @@ export default function Results({ results, setView, onContinueClaim }) {
                   </div>
                 </form>
               </>
+            ) : callStatus === "called" ? (
+              <div className="text-center py-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <PhoneCall size={20} className="text-emerald-700" />
+                </div>
+                <h2 className="font-extrabold text-2xl text-emerald-950 mb-2">
+                  Call completed
+                </h2>
+                <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                  Sign in or create a free account to proceed with payment
+                  and start claim assistance for this asset.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={closeCallForm}
+                    className="flex-1 rounded-full border border-slate-200 py-3 text-sm hover:border-slate-300 transition"
+                  >
+                    Not now
+                  </button>
+                  <button
+                    onClick={() => {
+                      onContinueClaim?.(requestId);
+                      closeCallForm();
+                    }}
+                    className="flex-1 rounded-full bg-emerald-950 text-white py-3 text-sm font-semibold hover:bg-emerald-900 transition"
+                  >
+                    Sign in / Create account
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="text-center py-4">
                 <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
@@ -243,7 +321,7 @@ export default function Results({ results, setView, onContinueClaim }) {
                 </p>
                 <div className="bg-emerald-50 rounded-xl px-4 py-3 mb-6 text-sm text-emerald-950">
                   To proceed further with the claim process, required
-                  documents, please call{" "}
+                  documents and applicable charges, please call{" "}
                   <span className="font-semibold">{CONTACT_NAME}</span> at{" "}
                   <a
                     href={`tel:${CONTACT_PHONE}`}

@@ -25,10 +25,54 @@ export default function App() {
   // their new/returning account so it shows up on their Dashboard.
   const [pendingCallRequestId, setPendingCallRequestId] = useState(null);
 
+  // A call request (remembered in this browser) that the admin has since
+  // marked "called" — shown as a banner prompting sign-in/payment, so the
+  // person doesn't need to stay signed in or on the page while waiting
+  // for the call.
+  const [calledRequest, setCalledRequest] = useState(null);
+
+  const checkCalledRequests = async () => {
+    let ids = [];
+    try {
+      ids = JSON.parse(localStorage.getItem("umang_call_request_ids") || "[]");
+    } catch {
+      ids = [];
+    }
+    if (!ids.length) return;
+
+    const { data } = await supabase
+      .from("call_requests")
+      .select("id, status, unclaimed_records(institution_name, asset_type)")
+      .in("id", ids);
+
+    const called = (data || []).find((r) => r.status === "called");
+    setCalledRequest(called || null);
+  };
+
+  const dismissCalledBanner = () => {
+    if (calledRequest) {
+      try {
+        const ids = JSON.parse(
+          localStorage.getItem("umang_call_request_ids") || "[]"
+        );
+        localStorage.setItem(
+          "umang_call_request_ids",
+          JSON.stringify(ids.filter((id) => id !== calledRequest.id))
+        );
+      } catch {
+        // ignore
+      }
+    }
+    setCalledRequest(null);
+  };
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setIsLoggedIn(!!data.user);
     });
+    checkCalledRequests();
+    const interval = setInterval(checkCalledRequests, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = async () => {
@@ -62,6 +106,18 @@ export default function App() {
       } catch (err) {
         console.error("Could not link call request to account:", err);
       } finally {
+        try {
+          const ids = JSON.parse(
+            localStorage.getItem("umang_call_request_ids") || "[]"
+          );
+          localStorage.setItem(
+            "umang_call_request_ids",
+            JSON.stringify(ids.filter((id) => id !== pendingCallRequestId))
+          );
+        } catch {
+          // ignore
+        }
+        setCalledRequest(null);
         setPendingCallRequestId(null);
         setView("dashboard");
       }
@@ -78,6 +134,36 @@ export default function App() {
         isLoggedIn={isLoggedIn}
         onLogout={handleLogout}
       />
+
+      {/* "Your call is done — sign in to pay" banner */}
+      {!isLoggedIn && calledRequest && (
+        <div className="bg-emerald-950 text-white">
+          <div className="max-w-5xl mx-auto px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-sm">
+            <span>
+              Our team has called you about{" "}
+              <span className="font-semibold">
+                {calledRequest.unclaimed_records?.institution_name || "your asset"}
+              </span>
+              . Sign in or create an account to proceed with payment.
+            </span>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => handleContinueClaim(calledRequest.id)}
+                className="rounded-full bg-white text-emerald-950 px-4 py-1.5 font-semibold hover:bg-emerald-50 transition"
+              >
+                Sign in / Create account
+              </button>
+              <button
+                onClick={dismissCalledBanner}
+                className="text-emerald-100 hover:text-white"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pages */}
       {view === "home" && (
