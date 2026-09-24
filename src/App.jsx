@@ -32,32 +32,52 @@ export default function App() {
   const [calledRequest, setCalledRequest] = useState(null);
 
   const checkCalledRequests = async () => {
-    let ids = [];
+    let stored = [];
     try {
-      ids = JSON.parse(localStorage.getItem("umang_call_request_ids") || "[]");
+      stored = JSON.parse(localStorage.getItem("umang_call_request_ids") || "[]");
     } catch {
-      ids = [];
+      stored = [];
     }
+    if (!stored.length) return;
+
+    const ids = stored
+      .map((item) => (typeof item === "string" ? item : item?.id))
+      .filter(Boolean);
     if (!ids.length) return;
 
-    const { data } = await supabase
-      .from("call_requests")
-      .select("id, status, unclaimed_records(institution_name, asset_type)")
-      .in("id", ids);
+    // Use secure RPC check_called_requests
+    const { data: rpcData, error } = await supabase.rpc("check_called_requests", {
+      p_request_ids: ids,
+    });
 
-    const called = (data || []).find((r) => r.status === "called");
+    let calls = rpcData;
+    if (error || !calls) {
+      const { data } = await supabase
+        .from("call_requests")
+        .select("id, status, unclaimed_records(institution_name, asset_type)")
+        .in("id", ids);
+      calls = data || [];
+    }
+
+    const called = (calls || []).find((r) => r.status === "called");
     setCalledRequest(called || null);
   };
 
   const dismissCalledBanner = () => {
     if (calledRequest) {
       try {
-        const ids = JSON.parse(
+        const stored = JSON.parse(
           localStorage.getItem("umang_call_request_ids") || "[]"
         );
         localStorage.setItem(
           "umang_call_request_ids",
-          JSON.stringify(ids.filter((id) => id !== calledRequest.id))
+          JSON.stringify(
+            stored.filter((item) =>
+              typeof item === "string"
+                ? item !== calledRequest.id
+                : item?.id !== calledRequest.id
+            )
+          )
         );
       } catch {
         // ignore
@@ -98,21 +118,50 @@ export default function App() {
     // so it appears in their Dashboard's "Your call requests" list.
     if (pendingCallRequestId && user?.id) {
       try {
-        await supabase
-          .from("call_requests")
-          .update({ user_id: user.id })
-          .eq("id", pendingCallRequestId)
-          .is("user_id", null);
+        let stored = [];
+        try {
+          stored = JSON.parse(
+            localStorage.getItem("umang_call_request_ids") || "[]"
+          );
+        } catch {
+          stored = [];
+        }
+        const item = stored.find((it) =>
+          typeof it === "string"
+            ? it === pendingCallRequestId
+            : it?.id === pendingCallRequestId
+        );
+        const token = typeof item === "object" ? item?.token : null;
+
+        const { error: linkErr } = await supabase.rpc("link_call_request", {
+          p_call_request_id: pendingCallRequestId,
+          p_verification_token: token || null,
+        });
+
+        if (linkErr) {
+          // Fallback direct update if permitted
+          await supabase
+            .from("call_requests")
+            .update({ user_id: user.id })
+            .eq("id", pendingCallRequestId)
+            .is("user_id", null);
+        }
       } catch (err) {
         console.error("Could not link call request to account:", err);
       } finally {
         try {
-          const ids = JSON.parse(
+          const stored = JSON.parse(
             localStorage.getItem("umang_call_request_ids") || "[]"
           );
           localStorage.setItem(
             "umang_call_request_ids",
-            JSON.stringify(ids.filter((id) => id !== pendingCallRequestId))
+            JSON.stringify(
+              stored.filter((it) =>
+                typeof it === "string"
+                  ? it !== pendingCallRequestId
+                  : it?.id !== pendingCallRequestId
+              )
+            )
           );
         } catch {
           // ignore
@@ -142,7 +191,7 @@ export default function App() {
             <span>
               Our team has called you about{" "}
               <span className="font-semibold">
-                {calledRequest.unclaimed_records?.institution_name || "your asset"}
+                {calledRequest.unclaimed_records?.institution_name || calledRequest.asset_type || "your asset"}
               </span>
               . Sign in or create an account to proceed with payment.
             </span>
