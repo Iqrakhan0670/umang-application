@@ -1,3 +1,6 @@
+
+
+Search · JSX
 import React, { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import {
@@ -19,7 +22,7 @@ import {
   UserRound,
   Building2,
 } from "lucide-react";
-
+ 
 /* ---------- How matching works ---------- */
 function HowMatchingWorks() {
   const steps = [
@@ -42,7 +45,7 @@ function HowMatchingWorks() {
       icon: ClipboardCheck,
     },
   ];
-
+ 
   return (
     <section className="w-full px-[6vw] lg:px-[8vw] py-16 border-t border-emerald-950/10">
       <div className="text-center mb-12">
@@ -53,7 +56,7 @@ function HowMatchingWorks() {
           A simple, three-step way to see what the registry holds.
         </p>
       </div>
-
+ 
       <div className="grid sm:grid-cols-3 gap-10 sm:gap-6">
         {steps.map((s, i) => {
           const Icon = s.icon;
@@ -71,7 +74,7 @@ function HowMatchingWorks() {
               <p className="text-sm text-emerald-950/60 leading-relaxed">
                 {s.desc}
               </p>
-
+ 
               {i < steps.length - 1 && (
                 <div className="hidden sm:block absolute top-7 left-[calc(50%+40px)] right-[calc(-50%+40px)] border-t border-dashed border-emerald-950/15" />
               )}
@@ -79,7 +82,7 @@ function HowMatchingWorks() {
           );
         })}
       </div>
-
+ 
       <p className="text-center text-xs text-emerald-950/40 mt-12 max-w-md mx-auto leading-relaxed">
         A name match does not confirm ownership. Ownership is verified during
         the claim process.
@@ -87,7 +90,7 @@ function HowMatchingWorks() {
     </section>
   );
 }
-
+ 
 /* ---------- Found a possible match? ---------- */
 function FoundMatchSection() {
   const cards = [
@@ -112,7 +115,7 @@ function FoundMatchSection() {
       desc: "Proceed with the appropriate claim process.",
     },
   ];
-
+ 
   return (
     <section className="bg-emerald-50/30 border-t border-emerald-950/10">
       <div className="w-full px-[6vw] lg:px-[8vw] py-16">
@@ -124,7 +127,7 @@ function FoundMatchSection() {
             Here's what happens next, one step at a time.
           </p>
         </div>
-
+ 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {cards.map((c) => {
             const Icon = c.icon;
@@ -150,7 +153,7 @@ function FoundMatchSection() {
     </section>
   );
 }
-
+ 
 /* ---------- Before you search ---------- */
 function BeforeYouSearch() {
   const items = [
@@ -159,7 +162,7 @@ function BeforeYouSearch() {
     "Try name variations if appropriate",
     "A result is only a possible match",
   ];
-
+ 
   return (
     <section className="w-full px-[6vw] lg:px-[8vw] py-14 border-t border-emerald-950/10">
       <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-emerald-950/10 shadow-sm px-8 py-8">
@@ -186,7 +189,7 @@ function BeforeYouSearch() {
     </section>
   );
 }
-
+ 
 /* ---------- Privacy & Security ---------- */
 function PrivacySection({ setView }) {
   return (
@@ -213,7 +216,7 @@ function PrivacySection({ setView }) {
     </section>
   );
 }
-
+ 
 /* ---------- FAQ ---------- */
 function FAQSection() {
   const faqs = [
@@ -238,9 +241,9 @@ function FAQSection() {
       a: "This typically includes identity proof, address proof, and documents linking you to the account or policy. Exact requirements depend on the institution and asset type.",
     },
   ];
-
+ 
   const [open, setOpen] = useState(null);
-
+ 
   return (
     <section className="max-w-3xl mx-auto px-6 py-16 border-t border-emerald-950/10">
       <div className="text-center mb-10">
@@ -248,7 +251,7 @@ function FAQSection() {
           Frequently asked questions
         </h2>
       </div>
-
+ 
       <div className="divide-y divide-emerald-950/10 border-t border-b border-emerald-950/10">
         {faqs.map((f, i) => {
           const isOpen = open === i;
@@ -280,7 +283,7 @@ function FAQSection() {
     </section>
   );
 }
-
+ 
 /* ---------- Trust strip ---------- */
 function TrustStrip() {
   const items = [
@@ -289,7 +292,7 @@ function TrustStrip() {
     { icon: SearchIcon, label: "Free registry search" },
     { icon: Building2, label: "Independent service" },
   ];
-
+ 
   return (
     <section className="border-t border-emerald-950/10 bg-emerald-50/30">
       <div className="w-full px-[6vw] lg:px-[8vw] py-8 flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
@@ -309,7 +312,7 @@ function TrustStrip() {
     </section>
   );
 }
-
+ 
 export default function Search({ setView, setResults }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -317,11 +320,11 @@ export default function Search({ setView, setResults }) {
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
+ 
   const handleSearch = async (e) => {
     e.preventDefault();
     setError(null);
-
+ 
     if (!firstName.trim()) {
       setError("Enter at least a first name to search.");
       return;
@@ -330,7 +333,7 @@ export default function Search({ setView, setResults }) {
       setError("Please confirm the consent checkbox to continue.");
       return;
     }
-
+ 
     setLoading(true);
     const fullName = [firstName, lastName].filter(Boolean).join(" ");
     try {
@@ -348,7 +351,7 @@ export default function Search({ setView, setResults }) {
       setLoading(false);
     }
   };
-
+ 
   return (
     <div className="bg-white">
       <div className="w-full px-[6vw] lg:px-[8vw] py-20 grid sm:grid-cols-5 gap-16">
@@ -359,7 +362,7 @@ export default function Search({ setView, setResults }) {
           <p className="text-emerald-950/60 mb-10">
             Free to search. No account needed to see results.
           </p>
-
+ 
           <form onSubmit={handleSearch} className="space-y-6">
             <div className="grid sm:grid-cols-2 gap-6">
               <div>
@@ -387,7 +390,7 @@ export default function Search({ setView, setResults }) {
                 />
               </div>
             </div>
-
+ 
             <div>
               <label className="block text-xs uppercase tracking-wide text-emerald-950/50 mb-2">
                 Mobile number
@@ -405,7 +408,7 @@ export default function Search({ setView, setResults }) {
                 same number that's registered wherever this was held.
               </p>
             </div>
-
+ 
             <label className="flex items-start gap-3 text-sm text-emerald-950/60 cursor-pointer">
               <input
                 type="checkbox"
@@ -416,9 +419,9 @@ export default function Search({ setView, setResults }) {
               I authorise UMANG to search its records using this name, under
               the Digital Personal Data Protection (DPDP) Act, 2023.
             </label>
-
+ 
             {error && <p className="text-red-500 text-sm">{error}</p>}
-
+ 
             <button
               type="submit"
               disabled={loading}
@@ -429,7 +432,7 @@ export default function Search({ setView, setResults }) {
             </button>
           </form>
         </div>
-
+ 
         <div className="sm:col-span-2 border-l border-emerald-950/10 pl-10 hidden sm:block">
           <h3 className="text-xs uppercase tracking-wide text-emerald-950/50 mb-4">
             What we search
@@ -458,20 +461,21 @@ export default function Search({ setView, setResults }) {
           </p>
         </div>
       </div>
-
+ 
       {/* New informational sections below the existing search form */}
       <HowMatchingWorks />
       <FoundMatchSection />
       <BeforeYouSearch />
       <PrivacySection setView={setView} />
       <FAQSection />
-
+ 
       <p className="max-w-3xl mx-auto px-6 text-center text-xs text-emerald-950/40 pb-10 leading-relaxed">
         Independent unclaimed asset search & claim assistance. Not affiliated
         with any government body or regulator.
       </p>
-
+ 
       <TrustStrip />
     </div>
   );
 }
+ 
