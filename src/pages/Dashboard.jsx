@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { PhoneCall, Clock, CheckCircle2 } from "lucide-react";
 import { createClaimSafe } from "../lib/duplicateCheck";
-import { startRazorpayPayment } from "../lib/razorpay";
+import { startRazorpayPayment } from "../lib/mockPayment";
 import ClaimStatusDetail from "../components/ClaimStatusDetail";
 
 const CALL_STATUS = {

@@ -53,45 +53,67 @@ export default function AdminApp() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-parchment flex items-center justify-center px-4 font-sans">
-        <div className="bg-white max-w-sm w-full border border-ink/15 p-8">
-          <h1 className="font-serif text-2xl text-ink mb-1">UMANG Admin</h1>
-          <p className="text-stone text-sm mb-6">Sign in to continue.</p>
+      <div className="min-h-screen bg-emerald-50 flex items-center justify-center px-4 font-sans">
+        <div className="bg-white max-w-sm w-full rounded-2xl border border-slate-200 shadow-sm p-8">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-emerald-950 flex items-center justify-center">
+              <span className="text-emerald-200 text-xs font-black">₹</span>
+            </div>
+            <span className="font-extrabold text-lg text-emerald-950 tracking-tight">UMANG Admin</span>
+          </div>
+          <p className="text-slate-500 text-sm mb-6">Sign in to continue.</p>
 
           {step === 1 ? (
             <form onSubmit={sendOtp} className="space-y-4">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full border-b-2 border-ink/20 bg-transparent py-2 focus:outline-none focus:border-pine"
-              />
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-slate-400 mb-1.5">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full border-b-2 border-slate-200 bg-transparent py-2 focus:outline-none focus:border-emerald-700 transition"
+                />
+              </div>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-pine text-parchment py-3 text-sm font-medium hover:bg-pine-light transition disabled:opacity-50"
+                className="w-full rounded-full bg-emerald-950 text-white py-3 text-sm font-semibold hover:bg-emerald-900 transition disabled:opacity-50"
               >
                 {loading ? "Sending…" : "Send code"}
               </button>
             </form>
           ) : (
             <form onSubmit={verifyOtp} className="space-y-4">
-              <input
-                type="text"
-                maxLength="8"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                placeholder="Enter code"
-                className="w-full border-b-2 border-ink/20 bg-transparent py-2 text-center tracking-[0.4em] focus:outline-none focus:border-pine"
-              />
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-slate-400 mb-1.5">
+                  Verification code
+                </label>
+                <input
+                  type="text"
+                  maxLength="8"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  placeholder="••••••"
+                  className="w-full border-b-2 border-slate-200 bg-transparent py-2 text-center text-xl tracking-[0.4em] focus:outline-none focus:border-emerald-700 transition"
+                />
+              </div>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-pine text-parchment py-3 text-sm font-medium hover:bg-pine-light transition disabled:opacity-50"
+                className="w-full rounded-full bg-emerald-950 text-white py-3 text-sm font-semibold hover:bg-emerald-900 transition disabled:opacity-50"
               >
                 {loading ? "Verifying…" : "Verify"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="w-full text-xs text-slate-400 hover:text-emerald-950"
+              >
+                ← Use a different email
               </button>
             </form>
           )}
@@ -101,7 +123,7 @@ export default function AdminApp() {
   }
 
   return (
-    <div className="min-h-screen bg-parchment font-sans">
+    <div className="min-h-screen bg-white font-sans">
       <Admin />
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { startRazorpayPayment } from "../lib/razorpay";
+import { startRazorpayPayment } from "../lib/mockPayment";
 
 export default function PaymentButton({ claimId, paymentType, amount, user, onPaid }) {
   const [status, setStatus] = useState("idle"); // idle | processing | failed | paid
