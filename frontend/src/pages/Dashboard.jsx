@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { PhoneCall, Clock, CheckCircle2 } from "lucide-react";
+import { PhoneCall, Clock, CheckCircle2, FileDown, FileText as FileIcon } from "lucide-react";
 import { createClaimSafe } from "../lib/duplicateCheck";
 import { startRazorpayPayment } from "../lib/mockPayment";
 import ClaimStatusDetail from "../components/ClaimStatusDetail";
+import { generateClaimReportPdf } from "../lib/generateClaimReport";
 
 const CALL_STATUS = {
   requested: { label: "Call requested", icon: Clock, className: "text-stone" },
@@ -25,6 +26,10 @@ export default function Dashboard({ setView }) {
   const [detailClaim, setDetailClaim] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Report-ready banner state
+  const [reportReadyClaimId, setReportReadyClaimId] = useState(null);
+  const [reportGenerating, setReportGenerating] = useState(null); // claim id currently generating
+
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -36,7 +41,7 @@ export default function Dashboard({ setView }) {
 
     const { data: claimData } = await supabase
       .from("claim_requests")
-      .select("*, unclaimed_records(institution_name,asset_type,amount)")
+      .select("*, unclaimed_records(institution_name,asset_type,amount,folio_number,created_at)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setClaims(claimData || []);
@@ -54,6 +59,33 @@ export default function Dashboard({ setView }) {
   useEffect(() => { load(); }, []);
 
   const alreadyClaimed = (recordId) => claims.some((c) => c.record_id === recordId);
+
+  const buildAndOpenReport = async (claim, { download = false, transactionId } = {}) => {
+    setReportGenerating(claim.id);
+    try {
+      const doc = generateClaimReportPdf({
+        claim,
+        record: claim.unclaimed_records,
+        user: {
+          name: currentUser?.user_metadata?.full_name || "",
+          email: currentUser?.email,
+        },
+        transactionId,
+      });
+      const filename = `UMANG-Claim-Report-${claim.id.slice(0, 8)}.pdf`;
+      if (download) {
+        doc.save(filename);
+      } else {
+        const blobUrl = doc.output("bloburl");
+        window.open(blobUrl, "_blank");
+      }
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("Could not generate your report right now. Please try again.");
+    } finally {
+      setReportGenerating(null);
+    }
+  };
 
   const confirmClaim = async () => {
     if (!feeCall) return;
@@ -73,11 +105,16 @@ export default function Dashboard({ setView }) {
           name: currentUser?.user_metadata?.full_name || "",
           phone: "",
         },
-        onSuccess: () => {
-          alert("Payment received. Claim Assistance has started — our team will guide you through documents and the claim process.");
+        onSuccess: async (paymentResult) => {
           setFeeCall(null);
           setSubmitting(false);
-          load();
+          await load();
+          // Generate the report right after a successful payment
+          setReportReadyClaimId(claim.id);
+          buildAndOpenReport(
+            { ...claim, unclaimed_records: feeCall.unclaimed_records, assistance_fee_paid: true, assistance_fee_amount: 299 },
+            { transactionId: paymentResult?.paymentId }
+          );
         },
         onFailure: (err) => {
           setPayError(err.message || "Payment did not go through. Please try again.");
@@ -135,6 +172,43 @@ export default function Dashboard({ setView }) {
         <h1 className="font-extrabold text-3xl text-umang-dark">Your Dashboard</h1>
         <p className="text-slate-500 text-sm mt-1">Track your call requests and claims here.</p>
       </div>
+
+      {/* REPORT READY BANNER */}
+      {reportReadyClaimId && (
+        <section className="max-w-5xl mx-auto px-6">
+          <div className="border border-emerald-200 bg-emerald-50 rounded-xl px-5 py-4 flex items-center justify-between gap-4 mb-2">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                <FileIcon size={16} className="text-emerald-700" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-umang-dark">Your Claim Assistance Report is Ready</p>
+                <p className="text-xs text-slate-500">View or download your personalized asset report below.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={() => {
+                  const c = claims.find((cl) => cl.id === reportReadyClaimId);
+                  if (c) buildAndOpenReport(c);
+                }}
+                className="text-xs border border-emerald-300 text-emerald-700 rounded-full px-3 py-2 hover:bg-white transition"
+              >
+                View PDF
+              </button>
+              <button
+                onClick={() => {
+                  const c = claims.find((cl) => cl.id === reportReadyClaimId);
+                  if (c) buildAndOpenReport(c, { download: true });
+                }}
+                className="text-xs bg-umang-dark text-white rounded-full px-3 py-2 hover:opacity-90 transition"
+              >
+                Download PDF
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* YOUR CALL REQUESTS */}
       {callRequests.length > 0 && (
@@ -200,6 +274,7 @@ export default function Dashboard({ setView }) {
                   <th className="py-2 font-medium">Status</th>
                   <th className="py-2 font-medium text-right">Amount</th>
                   <th className="py-2 font-medium text-right">Success fee</th>
+                  <th className="py-2 font-medium text-right">Report</th>
                   <th className="py-2 font-medium text-right">Details</th>
                 </tr>
               </thead>
@@ -222,6 +297,20 @@ export default function Dashboard({ setView }) {
                         >
                           Review & accept
                         </button>
+                      )}
+                    </td>
+                    <td className="py-3 text-right">
+                      {c.assistance_fee_paid ? (
+                        <button
+                          onClick={() => buildAndOpenReport(c)}
+                          disabled={reportGenerating === c.id}
+                          className="inline-flex items-center gap-1 text-xs border border-umang-dark/20 rounded-full px-3 py-1.5 hover:border-umang-dark/40 transition disabled:opacity-50"
+                        >
+                          <FileDown size={12} />
+                          {reportGenerating === c.id ? "Preparing…" : "View PDF"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
                       )}
                     </td>
                     <td className="py-3 text-right">

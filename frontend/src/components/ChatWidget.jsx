@@ -1,60 +1,25 @@
 import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 
-const FAQS = [
-  {
-    keywords: ["fee", "charge", "cost", "price", "299"],
-    answer:
-      "UMANG charges a one-time ₹299 Claim Assistance Fee when you start a claim, plus a 10% success fee — only if your money is actually recovered. Searching is always free.",
-  },
-  {
-    keywords: ["success fee", "10%", "10 percent"],
-    answer:
-      "The 10% success fee applies only after your money is successfully recovered. If it's not recovered, you don't pay it.",
-  },
-  {
-    keywords: ["document", "documents", "upload", "pan", "aadhaar"],
-    answer:
-      "Once your claim is submitted, go to Home → Your claims → View details to upload documents like PAN, Aadhaar, or bank proof.",
-  },
-  {
-    keywords: ["status", "track", "claim update"],
-    answer:
-      "You can check your claim's status anytime from Home → Your claims → View details. It shows a full timeline.",
-  },
-  {
-    keywords: ["call", "phone", "contact"],
-    answer:
-      "After you request a call from the Results page, our team will call you to explain the process — no payment is taken at that stage.",
-  },
-  {
-    keywords: ["refund", "cancel"],
-    answer:
-      "You can withdraw your claim anytime before recovery — no success fee applies. The ₹299 assistance fee is non-refundable as it covers guidance already given.",
-  },
-  {
-    keywords: ["what is umang", "about", "who are you"],
-    answer:
-      "UMANG helps you find unclaimed money in banks, mutual funds, and insurance policies, and assists you in claiming it back. We're an independent service, not affiliated with any government body.",
-  },
-  {
-    keywords: ["search", "find money", "how it works"],
-    answer:
-      "Just search by name on the Search page — it's free, no account needed. If you find a match, you can start Claim Assistance.",
-  },
-];
+const DEFAULT_ERROR_REPLY =
+  "Sorry, I couldn't process that right now. Please try again, or request a call from the Results page.";
 
-const DEFAULT_REPLY =
-  "I'm not sure about that yet — try asking about fees, documents, claim status, or how UMANG works. For anything else, please request a call from the Results page.";
+// Change this to your deployed backend URL when you go live
+const BACKEND_URL = "http://localhost:5000/api/chat";
 
-function findAnswer(question) {
-  const q = question.toLowerCase();
-  for (const faq of FAQS) {
-    if (faq.keywords.some((k) => q.includes(k))) {
-      return faq.answer;
-    }
+async function askBot(message) {
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+    const data = await res.json();
+    return data.reply || DEFAULT_ERROR_REPLY;
+  } catch (err) {
+    console.error("Chat error:", err);
+    return DEFAULT_ERROR_REPLY;
   }
-  return DEFAULT_REPLY;
 }
 
 export default function ChatWidget() {
@@ -63,26 +28,28 @@ export default function ChatWidget() {
     { from: "bot", text: "Hi! Ask me about fees, documents, or your claim status." },
   ]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, open]);
+  }, [messages, open, loading]);
 
-  const send = (e) => {
+  const send = async (e) => {
     e.preventDefault();
     const text = input.trim();
-    if (!text) return;
+    if (!text || loading) return;
 
-    const reply = findAnswer(text);
-    setMessages((prev) => [
-      ...prev,
-      { from: "user", text },
-      { from: "bot", text: reply },
-    ]);
+    setMessages((prev) => [...prev, { from: "user", text }]);
     setInput("");
+    setLoading(true);
+
+    const reply = await askBot(text);
+
+    setMessages((prev) => [...prev, { from: "bot", text: reply }]);
+    setLoading(false);
   };
 
   return (
@@ -147,6 +114,22 @@ export default function ChatWidget() {
                 </span>
               </div>
             ))}
+            {loading && (
+              <div style={{ textAlign: "left", marginBottom: "10px" }}>
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    background: "#fff",
+                    border: "1px solid rgba(0,0,0,0.1)",
+                    color: "#888",
+                  }}
+                >
+                  Typing…
+                </span>
+              </div>
+            )}
           </div>
 
           <form
@@ -157,6 +140,7 @@ export default function ChatWidget() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask a question…"
+              disabled={loading}
               style={{
                 flex: 1,
                 border: "none",
@@ -168,6 +152,7 @@ export default function ChatWidget() {
             />
             <button
               type="submit"
+              disabled={loading}
               style={{
                 border: "none",
                 background: "none",
