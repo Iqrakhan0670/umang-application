@@ -13,6 +13,8 @@ import About from "./pages/About";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Dashboard from "./pages/Dashboard";
+import Contact from "./pages/Contact"; {/* NEW */}
+import { ClaimAssistanceTerms, FeeTerms, RefundPolicy } from "./pages/legal/LegalPages";
 
 export default function App() {
   const [view, setView] = useState("home");
@@ -20,15 +22,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
-  // Set when the person taps "Continue" after a call request, from
-  // Results.jsx. Once they sign in, this call_requests row is linked to
-  // their new/returning account so it shows up on their Dashboard.
   const [pendingCallRequestId, setPendingCallRequestId] = useState(null);
-
-  // A call request (remembered in this browser) that the admin has since
-  // marked "called" — shown as a banner prompting sign-in/payment, so the
-  // person doesn't need to stay signed in or on the page while waiting
-  // for the call.
   const [calledRequest, setCalledRequest] = useState(null);
 
   const checkCalledRequests = async () => {
@@ -45,7 +39,6 @@ export default function App() {
       .filter(Boolean);
     if (!ids.length) return;
 
-    // Use secure RPC check_called_requests
     const { data: rpcData, error } = await supabase.rpc("check_called_requests", {
       p_request_ids: ids,
     });
@@ -101,10 +94,6 @@ export default function App() {
     setView("home");
   };
 
-  // Called from Results.jsx when the person chooses "Continue" after
-  // requesting a call. Opens sign-in/register; does NOT charge anything
-  // and does NOT show the 10% agreement — those stay gated later in
-  // Dashboard.jsx exactly as they already are.
   const handleContinueClaim = (callRequestId) => {
     setPendingCallRequestId(callRequestId || null);
     setAuthOpen(true);
@@ -114,8 +103,6 @@ export default function App() {
     setIsLoggedIn(true);
     setAuthOpen(false);
 
-    // Link the anonymous call request (if any) to the now-signed-in user,
-    // so it appears in their Dashboard's "Your call requests" list.
     if (pendingCallRequestId && user?.id) {
       try {
         let stored = [];
@@ -139,7 +126,6 @@ export default function App() {
         });
 
         if (linkErr) {
-          // Fallback direct update if permitted
           await supabase
             .from("call_requests")
             .update({ user_id: user.id })
@@ -246,6 +232,22 @@ export default function App() {
         <Terms />
       )}
 
+      {view === "claim-assistance-terms" && (
+        <ClaimAssistanceTerms />
+      )}
+
+      {view === "fee-terms" && (
+        <FeeTerms />
+      )}
+
+      {view === "refund-policy" && (
+        <RefundPolicy />
+      )}
+
+      {view === "contact" && ( /* NEW */
+        <Contact />
+      )}
+
       {view === "dashboard" && (
         <Dashboard setView={setView} />
       )}
@@ -260,8 +262,12 @@ export default function App() {
         onLoginSuccess={handleLoginSuccess}
       />
 
+      {/* Footer */}
+      <Footer setView={setView} /> {/* NEW — was imported but never rendered */}
+
       {/* Chat */}
       <ChatWidget />
+      <ChatWidget setView={setView} />
 
     </div>
   );

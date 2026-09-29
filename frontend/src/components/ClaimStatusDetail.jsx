@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import DocumentUpload from "./DocumentUpload";
 import PaymentButton from "./PaymentButton";
+import ClaimTimeline from "./ClaimTimeline";
 
 const STATUS_LABELS = {
   submitted: "Submitted",
@@ -17,7 +18,6 @@ const STATUS_ORDER = ["submitted", "under_review", "documents_pending", "filed_w
 
 export default function ClaimStatusDetail({ claimId, user }) {
   const [claim, setClaim] = useState(null);
-  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,14 +43,7 @@ export default function ClaimStatusDetail({ claimId, user }) {
       .eq("id", claimId)
       .single();
 
-    const { data: historyData } = await supabase
-      .from("claim_status_history")
-      .select("*")
-      .eq("claim_id", claimId)
-      .order("changed_at", { ascending: true });
-
     setClaim(claimData);
-    setHistory(historyData || []);
     setLoading(false);
   }
 
@@ -112,20 +105,10 @@ export default function ClaimStatusDetail({ claimId, user }) {
         </div>
       )}
 
-      {history.length > 0 && (
-        <details className="mt-6 text-sm">
-          <summary className="cursor-pointer text-stone">Full history</summary>
-          <ul className="mt-2 space-y-1 text-stone">
-            {history.map((h) => (
-              <li key={h.id}>
-                {new Date(h.changed_at).toLocaleString("en-IN")}: {STATUS_LABELS[h.old_status] || "Created"} →{" "}
-                {STATUS_LABELS[h.new_status]}
-                {h.note && ` — ${h.note}`}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
+      <div className="mt-8 border-t border-ink/10 pt-5">
+        <h3 className="font-serif text-lg text-ink mb-4">Timeline</h3>
+        <ClaimTimeline claimId={claimId} />
+      </div>
     </div>
   );
 }

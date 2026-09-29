@@ -89,9 +89,12 @@ export default function Footer({ setView }) {
             Terms
           </button>
 
-          <span className="text-white/70">
+          <button
+            onClick={() => setView("contact")}
+            className="text-white/70 hover:text-white transition"
+          >
             Contact
-          </span>
+          </button>
         </div>
 
         {/* Social */}

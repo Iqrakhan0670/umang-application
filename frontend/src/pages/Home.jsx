@@ -354,143 +354,86 @@ export default function Home({ setView }) {
         </div>
       </section>
 
-{/* =====================================================
-    STATS + FOOTER
-===================================================== */}
-<section className="relative overflow-hidden bg-emerald-950 text-white">
+      {/* =====================================================
+          STATS
+      ===================================================== */}
+      <section className="relative overflow-hidden bg-emerald-950 text-white">
 
-  <div
-    className="absolute inset-0 bg-cover bg-center opacity-10"
-    style={{
-      backgroundImage: "url('/hero-globe.png')",
-    }}
-  />
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-10"
+          style={{
+            backgroundImage: "url('/hero-globe.png')",
+          }}
+        />
 
-  <div className="absolute inset-0 bg-emerald-950/90" />
+        <div className="absolute inset-0 bg-emerald-950/90" />
 
-  <div className="relative z-10 w-full px-[6vw] lg:px-[8vw]">
+        <div className="relative z-10 w-full px-[6vw] lg:px-[8vw]">
 
-    {/* STATS */}
-    <div className="py-8 lg:py-9">
+          {/* STATS */}
+          <div className="py-8 lg:py-9">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
 
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center shrink-0">
-            <span className="text-emerald-200 text-sm font-black">₹</span>
-          </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center shrink-0">
+                  <span className="text-emerald-200 text-sm font-black">₹</span>
+                </div>
 
-          <div>
-            <p className="text-base font-extrabold">UMANG</p>
-            <p className="mt-0.5 text-[11px] leading-4 text-white/55">
-              Turning unclaimed assets into new possibilities.
-            </p>
-          </div>
-        </div>
+                <div>
+                  <p className="text-base font-extrabold">UMANG</p>
+                  <p className="mt-0.5 text-[11px] leading-4 text-white/55">
+                    Turning unclaimed assets into new possibilities.
+                  </p>
+                </div>
+              </div>
 
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
-            <Users size={16} />
-          </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+                  <Users size={16} />
+                </div>
 
-          <div>
-            <p className="text-lg font-extrabold">
-              {loading ? "—" : `${recordCount}+`}
-            </p>
-            <p className="mt-0.5 text-[11px] text-white/55">
-              Records searchable
-            </p>
-          </div>
-        </div>
+                <div>
+                  <p className="text-lg font-extrabold">
+                    {loading ? "—" : `${recordCount}+`}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-white/55">
+                    Records searchable
+                  </p>
+                </div>
+              </div>
 
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
-            <Database size={16} />
-          </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+                  <Database size={16} />
+                </div>
 
-          <div>
-            <p className="text-lg font-extrabold">₹500 Cr+</p>
-            <p className="mt-0.5 text-[11px] text-white/55">
-              Estimated unclaimed assets
-            </p>
-          </div>
-        </div>
+                <div>
+                  <p className="text-lg font-extrabold">₹500 Cr+</p>
+                  <p className="mt-0.5 text-[11px] text-white/55">
+                    Estimated unclaimed assets
+                  </p>
+                </div>
+              </div>
 
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
-            <LockKeyhole size={16} />
-          </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+                  <LockKeyhole size={16} />
+                </div>
 
-          <div>
-            <p className="text-lg font-extrabold">100%</p>
-            <p className="mt-0.5 text-[11px] text-white/55">
-              Secure &amp; Private
-            </p>
-          </div>
-        </div>
+                <div>
+                  <p className="text-lg font-extrabold">100%</p>
+                  <p className="mt-0.5 text-[11px] text-white/55">
+                    Secure &amp; Private
+                  </p>
+                </div>
+              </div>
 
-      </div>
-    </div>
-
-
-    {/* FOOTER — ONLY ONCE */}
-    <div className="border-t border-white/10 py-6">
-
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-
-        <div className="flex items-start gap-3">
-
-          <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center shrink-0">
-            <span className="text-emerald-200 text-sm font-black">
-              ₹
-            </span>
-          </div>
-
-          <div>
-            <p className="text-sm font-extrabold">
-              UMANG
-            </p>
-
-            <p className="mt-1 max-w-[520px] text-[11px] leading-5 text-white/50">
-              Independent unclaimed asset search &amp; claim assistance.
-              Not affiliated with any government body or regulator.
-            </p>
+            </div>
           </div>
 
         </div>
-
-
-        <div className="flex items-center gap-5 text-[11px] font-semibold text-white/55">
-
-          <button
-            onClick={() => setView("privacy")}
-            className="hover:text-white transition-colors"
-          >
-            Privacy Policy
-          </button>
-
-          <button
-            onClick={() => setView("terms")}
-            className="hover:text-white transition-colors"
-          >
-            Terms
-          </button>
-
-          <button
-            onClick={() => setView("contact")}
-            className="hover:text-white transition-colors"
-          >
-            Contact
-          </button>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-</section>
+      </section>
     </main>
   );
 }

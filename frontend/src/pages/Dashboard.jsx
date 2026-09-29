@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { PhoneCall, Clock, CheckCircle2, FileDown, FileText as FileIcon } from "lucide-react";
 import { createClaimSafe } from "../lib/duplicateCheck";
@@ -17,6 +17,7 @@ export default function Dashboard({ setView }) {
   const [claims, setClaims] = useState([]);
   const [callRequests, setCallRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [feeCall, setFeeCall] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [payError, setPayError] = useState(null);
@@ -25,38 +26,92 @@ export default function Dashboard({ setView }) {
   const [acceptingAgreement, setAcceptingAgreement] = useState(false);
   const [detailClaim, setDetailClaim] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [profile, setProfile] = useState(null);
 
   // Report-ready banner state
   const [reportReadyClaimId, setReportReadyClaimId] = useState(null);
-  const [reportGenerating, setReportGenerating] = useState(null); // claim id currently generating
+  const [reportGenerating, setReportGenerating] = useState(null);
+
+  // Sirf sabse latest load() ka result use hoga (user switch par purani request ignore)
+  const loadSeq = useRef(0);
+
+  const clearUserState = () => {
+    setCurrentUser(null);
+    setProfile(null);
+    setClaims([]);
+    setCallRequests([]);
+    setFeeCall(null);
+    setAgreementClaim(null);
+    setDetailClaim(null);
+    setReportReadyClaimId(null);
+    setLoadError(null);
+  };
 
   const load = async () => {
+    const seq = ++loadSeq.current;
+
     const { data: { user } } = await supabase.auth.getUser();
+    if (seq !== loadSeq.current) return;
 
     if (!user) {
+      clearUserState();
       setLoading(false);
       return;
     }
     setCurrentUser(user);
 
-    const { data: claimData } = await supabase
-      .from("claim_requests")
-      .select("*, unclaimed_records(institution_name,asset_type,amount,folio_number,created_at)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    setClaims(claimData || []);
+    const [claimRes, callRes, profileRes] = await Promise.all([
+      supabase
+        .from("claim_requests")
+        .select("*, unclaimed_records(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("call_requests")
+        .select("*, unclaimed_records(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+    ]);
+    if (seq !== loadSeq.current) return;
 
-    const { data: callData } = await supabase
-      .from("call_requests")
-      .select("*, unclaimed_records(institution_name,asset_type,amount)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    setCallRequests(callData || []);
+    const err = claimRes.error || callRes.error;
+    if (err) {
+      console.error("Dashboard load error:", claimRes.error, callRes.error);
+      setLoadError(err.message);
+    } else {
+      setLoadError(null);
+    }
 
+    setClaims(claimRes.data || []);
+    setCallRequests(callRes.data || []);
+    setProfile(profileRes.data || null);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    clearUserState();
+    setLoading(true);
+    load();
+
+    // Login / logout / user switch par dobara load, purana data pehle hi clear
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "TOKEN_REFRESHED") return;
+      clearUserState();
+      setLoading(true);
+      load();
+    });
+    return () => {
+      loadSeq.current++;
+      sub.subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const displayName =
+    profile?.full_name ||
+    currentUser?.user_metadata?.full_name ||
+    (currentUser?.email ? currentUser.email.split("@")[0] : "");
 
   const alreadyClaimed = (recordId) => claims.some((c) => c.record_id === recordId);
 
@@ -67,7 +122,7 @@ export default function Dashboard({ setView }) {
         claim,
         record: claim.unclaimed_records,
         user: {
-          name: currentUser?.user_metadata?.full_name || "",
+          name: displayName,
           email: currentUser?.email,
         },
         transactionId,
@@ -102,14 +157,13 @@ export default function Dashboard({ setView }) {
         user: {
           id: currentUser?.id,
           email: currentUser?.email,
-          name: currentUser?.user_metadata?.full_name || "",
-          phone: "",
+          name: displayName,
+          phone: profile?.phone || "",
         },
         onSuccess: async (paymentResult) => {
           setFeeCall(null);
           setSubmitting(false);
           await load();
-          // Generate the report right after a successful payment
           setReportReadyClaimId(claim.id);
           buildAndOpenReport(
             { ...claim, unclaimed_records: feeCall.unclaimed_records, assistance_fee_paid: true, assistance_fee_amount: 299 },
@@ -135,7 +189,8 @@ export default function Dashboard({ setView }) {
       const { error } = await supabase
         .from("claim_requests")
         .update({ agreement_accepted: true, agreement_accepted_at: new Date().toISOString() })
-        .eq("id", agreementClaim.id);
+        .eq("id", agreementClaim.id)
+        .eq("user_id", currentUser.id);
       if (error) throw error;
       setAgreementClaim(null);
       setAgreeChecked(false);
@@ -166,16 +221,53 @@ export default function Dashboard({ setView }) {
     );
   }
 
+  const recoveredTotal = claims.reduce((s, c) => s + Number(c.recovered_amount || 0), 0);
+
   return (
     <div className="font-heading">
       <div className="max-w-5xl mx-auto px-6 pt-16 pb-4">
         <h1 className="font-extrabold text-3xl text-umang-dark">Your Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">Track your call requests and claims here.</p>
+        <p className="text-slate-500 text-sm mt-1">
+          {displayName ? `Welcome, ${displayName}. ` : ""}Track your call requests and claims here.
+        </p>
       </div>
+
+      {/* LOAD ERROR (pehle ye silently chhup jata tha) */}
+      {loadError && (
+        <section className="max-w-5xl mx-auto px-6">
+          <p className="text-xs text-red-500 border border-red-200 bg-red-50 rounded-lg px-4 py-3 mb-2" role="alert">
+            Could not load your data: {loadError}
+          </p>
+        </section>
+      )}
+
+      {/* USER-SPECIFIC SUMMARY */}
+      <section className="max-w-5xl mx-auto px-6 pt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="border border-umang-dark/10 rounded-lg px-4 py-3">
+            <p className="text-xs text-slate-500">My Claims</p>
+            <p className="text-xl font-extrabold text-umang-dark">{claims.length}</p>
+          </div>
+          <div className="border border-umang-dark/10 rounded-lg px-4 py-3">
+            <p className="text-xs text-slate-500">My Call Requests</p>
+            <p className="text-xl font-extrabold text-umang-dark">{callRequests.length}</p>
+          </div>
+          <div className="border border-umang-dark/10 rounded-lg px-4 py-3">
+            <p className="text-xs text-slate-500">My Matched Records</p>
+            <p className="text-xl font-extrabold text-umang-dark">
+              {new Set([...claims, ...callRequests].map((x) => x.record_id).filter(Boolean)).size}
+            </p>
+          </div>
+          <div className="border border-umang-dark/10 rounded-lg px-4 py-3">
+            <p className="text-xs text-slate-500">My Recovered Amount</p>
+            <p className="text-xl font-extrabold text-umang-dark">₹{recoveredTotal.toLocaleString("en-IN")}</p>
+          </div>
+        </div>
+      </section>
 
       {/* REPORT READY BANNER */}
       {reportReadyClaimId && (
-        <section className="max-w-5xl mx-auto px-6">
+        <section className="max-w-5xl mx-auto px-6 pt-4">
           <div className="border border-emerald-200 bg-emerald-50 rounded-xl px-5 py-4 flex items-center justify-between gap-4 mb-2">
             <div className="flex items-center gap-3">
               <span className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
@@ -251,7 +343,7 @@ export default function Dashboard({ setView }) {
         </section>
       )}
 
-      {callRequests.length === 0 && claims.length === 0 && (
+      {callRequests.length === 0 && claims.length === 0 && !loadError && (
         <section className="max-w-5xl mx-auto px-6 pt-8 pb-16">
           <div className="border border-umang-dark/10 rounded-lg px-6 py-10 text-center text-slate-500 text-sm">
             No activity yet. Search your name and request a call to get started.
@@ -283,9 +375,9 @@ export default function Dashboard({ setView }) {
                   <tr key={c.id} className="border-b border-umang-dark/5">
                     <td className="py-3">{c.unclaimed_records?.institution_name || "—"}</td>
                     <td className="py-3">{c.unclaimed_records?.asset_type || "—"}</td>
-                    <td className="py-3 capitalize">{c.status.replace("_", " ")}</td>
+                    <td className="py-3 capitalize">{(c.status || "").replace("_", " ")}</td>
                     <td className="py-3 text-right font-medium">
-                      ₹{(c.recovered_amount || c.unclaimed_records?.amount || 0).toLocaleString("en-IN")}
+                      ₹{Number(c.recovered_amount || c.unclaimed_records?.amount || 0).toLocaleString("en-IN")}
                     </td>
                     <td className="py-3 text-right">
                       {c.agreement_accepted ? (
@@ -423,7 +515,7 @@ export default function Dashboard({ setView }) {
             </button>
             <ClaimStatusDetail
               claimId={detailClaim.id}
-              user={{ id: currentUser?.id, email: currentUser?.email, name: currentUser?.user_metadata?.full_name || "" }}
+              user={{ id: currentUser?.id, email: currentUser?.email, name: displayName }}
             />
           </div>
         </div>

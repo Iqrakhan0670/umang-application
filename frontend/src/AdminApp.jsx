@@ -93,6 +93,9 @@ export default function AdminApp() {
   const [checking, setChecking] = useState(true);
   const [view, setView] = useState("login"); // login | forgot | reset
 
+  // admin role check: null = checking, true/false = result
+  const [isAdmin, setIsAdmin] = useState(null);
+
   // login state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -145,6 +148,33 @@ export default function AdminApp() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // Check that the signed-in user is an active admin before showing the dashboard.
+  useEffect(() => {
+    if (!session) {
+      setIsAdmin(null);
+      return;
+    }
+    let active = true;
+    setIsAdmin(null);
+    supabase
+      .from("admin_users")
+      .select("role,is_active")
+      .ilike("email", (session.email || "").trim())
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setIsAdmin(!!data && data.is_active === true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [session]);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setIsAdmin(null);
+  };
+
   const passwordChecks = {
     length: newPassword.length >= 8,
     upper: /[A-Z]/.test(newPassword),
@@ -185,7 +215,12 @@ export default function AdminApp() {
       }
       setSession(data.user);
     } catch (err) {
-      setError("Incorrect email or password. Please try again.");
+      console.error("Admin sign-in error:", err);
+      if (err?.status >= 500) {
+        setError("Server error while signing in. Please try again in a moment.");
+      } else {
+        setError("Incorrect email or password. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -246,8 +281,31 @@ export default function AdminApp() {
 
   if (checking) return null;
 
-  // ---- Already authenticated → dashboard ----
+  // ---- Already authenticated → check admin role ----
   if (session && view !== "reset") {
+    if (isAdmin === null) {
+      return (
+        <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm">
+          Checking access…
+        </div>
+      );
+    }
+    if (!isAdmin) {
+      return (
+        <AuthCard>
+          <h1 className="text-base font-semibold text-gray-900 mb-1">No admin access</h1>
+          <p className="text-sm text-gray-500 mb-6">
+            {session.email} is not an active administrator. Sign in with an admin account.
+          </p>
+          <button
+            onClick={signOut}
+            className="w-full bg-emerald-950 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-900 transition"
+          >
+            Sign out
+          </button>
+        </AuthCard>
+      );
+    }
     return (
       <div className="min-h-screen bg-white font-sans">
         <Admin />

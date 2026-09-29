@@ -114,11 +114,25 @@ export default function DocumentUpload({ claimId, userId }) {
 
       <ul className="space-y-2 text-sm">
         {documents.map((doc) => (
-          <li key={doc.id} className="flex justify-between border-b border-ink/10 pb-2">
-            <span>{doc.doc_type} — {doc.file_name}</span>
-            <span className={doc.verified ? "text-pine" : "text-stone"}>
-              {doc.verified ? "✓ Verified" : doc.rejection_reason ? `✗ ${doc.rejection_reason}` : "Pending review"}
-            </span>
+          <li key={doc.id} className="border-b border-ink/10 pb-2">
+            <div className="flex justify-between items-center">
+              <span>{doc.doc_type} — {doc.file_name}</span>
+              <span className={doc.verified ? "text-pine" : doc.rejection_reason ? "text-clay" : "text-stone"}>
+                {doc.verified ? "✓ Verified" : doc.rejection_reason ? "✗ Rejected" : "Pending review"}
+              </span>
+            </div>
+            {!doc.verified && doc.rejection_reason && (
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <p className="text-xs text-clay">{doc.rejection_reason}</p>
+                <button
+                  type="button"
+                  onClick={() => setDocType(doc.doc_type)}
+                  className="text-xs text-pine underline shrink-0"
+                >
+                  Re-upload this document
+                </button>
+              </div>
+            )}
           </li>
         ))}
         {documents.length === 0 && (

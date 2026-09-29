@@ -8,10 +8,34 @@ import DashboardSummary from "../components/admin/DashboardSummary";
 import Settings from "../components/admin/Settings";
 import Settlements from "../components/admin/Settlements";
 import ActivityLog from "../components/admin/ActivityLog";
+import AdminDocumentReview from "../components/admin/AdminDocumentReview";
+import ClaimTimeline from "../components/ClaimTimeline";
+import ManageAdmins from "../components/admin/ManageAdmins";
+import SettlementPanel from "../components/admin/SettlementPanel";
+import ErrorBoundary from "../components/ErrorBoundary";
+import { notifyUser } from "../lib/notify";
+import { getCurrentAdminRole } from "../lib/adminAuth";
 
-const ADMIN_EMAIL = "fybsciqrakhan0670@gmail.com";
+// Which roles can see which tab
+const TAB_ACCESS = {
+  dashboard: ["super_admin", "agent", "reviewer", "settlement_admin"],
+  calls: ["super_admin", "agent"],
+  claims: ["super_admin", "reviewer"],
+  import: ["super_admin"],
+  settlements: ["super_admin", "settlement_admin"],
+  activity: ["super_admin"],
+  settings: ["super_admin"],
+  manage_admins: ["super_admin"],
+};
 
-const CALL_STATUSES = ["requested", "called", "no_answer", "closed"];
+const CALL_STATUSES = [
+  "requested",
+  "scheduled",
+  "called",
+  "callback_requested",
+  "no_answer",
+  "closed",
+];
 const CLAIM_STATUSES = [
   "submitted",
   "under_review",
@@ -25,7 +49,9 @@ const CLAIM_STATUSES = [
 // Color tokens per status so admins can scan tables at a glance
 const STATUS_COLORS = {
   requested: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  scheduled: "bg-amber-50 text-amber-700 border-amber-200",
   called: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  callback_requested: "bg-amber-100 text-amber-800 border-amber-300",
   no_answer: "bg-emerald-50 text-gray-500 border-gray-200",
   closed: "bg-emerald-50 text-gray-500 border-gray-200",
   submitted: "bg-emerald-100 text-emerald-800 border-emerald-200",
@@ -54,6 +80,99 @@ function EmptyState({ label }) {
   );
 }
 
+// Converts a timestamptz value into the string format <input type="datetime-local"> expects
+function toDatetimeLocalValue(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
+    d.getMinutes()
+  )}`;
+}
+
+/* ---------------- Call details panel (notes + scheduled time) ---------------- */
+
+function CallDetailsPanel({ call, onSave }) {
+  const [notes, setNotes] = useState(call.call_notes || "");
+  const [scheduledAt, setScheduledAt] = useState(toDatetimeLocalValue(call.scheduled_at));
+  const [saving, setSaving] = useState(false);
+
+  const showScheduleField = call.status === "scheduled" || call.status === "callback_requested";
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(call, {
+      call_notes: notes.trim() === "" ? null : notes.trim(),
+      scheduled_at: showScheduleField && scheduledAt ? new Date(scheduledAt).toISOString() : null,
+    });
+    setSaving(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      {showScheduleField && (
+        <div>
+          <label className="block text-xs uppercase tracking-wide text-gray-400 mb-1.5">
+            {call.status === "callback_requested" ? "Callback date & time" : "Scheduled date & time"}
+          </label>
+          <input
+            type="datetime-local"
+            value={scheduledAt}
+            onChange={(e) => setScheduledAt(e.target.value)}
+            className="border border-gray-200 bg-white px-3 py-2 text-sm rounded-md w-full sm:w-64"
+          />
+        </div>
+      )}
+      <div>
+        <label className="block text-xs uppercase tracking-wide text-gray-400 mb-1.5">
+          Call notes
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          placeholder="What was discussed on the call…"
+          className="w-full border border-gray-200 bg-white px-3 py-2 text-sm rounded-md resize-none"
+        />
+      </div>
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="text-xs font-semibold bg-emerald-950 text-white px-4 py-2 rounded-md hover:bg-emerald-900 transition disabled:opacity-50"
+      >
+        {saving ? "Saving…" : "Save details"}
+      </button>
+    </div>
+  );
+}
+
+/* ---------------- Claim expand panel (documents + settlement + timeline) ---------------- */
+// Each part is wrapped in its own ErrorBoundary, so if one crashes the rest
+// of the page keeps working and the exact error is shown in that section.
+
+function ClaimExpandPanel({ claim, onUpdated }) {
+  return (
+    <div className="space-y-4">
+      <ErrorBoundary label="Documents">
+        <AdminDocumentReview claimId={claim.id} />
+      </ErrorBoundary>
+
+      <ErrorBoundary label="Settlement">
+        <SettlementPanel claim={claim} onUpdated={onUpdated} />
+      </ErrorBoundary>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-4">
+          Timeline
+        </h4>
+        <ErrorBoundary label="Timeline">
+          <ClaimTimeline claimId={claim.id} />
+        </ErrorBoundary>
+      </div>
+    </div>
+  );
+}
+
 const TAB_TITLES = {
   dashboard: "Dashboard",
   calls: "Call Requests",
@@ -62,6 +181,7 @@ const TAB_TITLES = {
   settlements: "Settlements",
   activity: "Activity Log",
   settings: "Settings",
+  manage_admins: "Manage Admins",
 };
 
 // Best-effort activity log write — never blocks the main action if it fails
@@ -75,12 +195,14 @@ async function logActivity(action, entityType, entityId) {
 
 export default function Admin() {
   const [isAdmin, setIsAdmin] = useState(null);
+  const [adminRole, setAdminRole] = useState(null);
   const [calls, setCalls] = useState([]);
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState("dashboard");
   const [expandedClaimId, setExpandedClaimId] = useState(null);
+  const [expandedCallId, setExpandedCallId] = useState(null);
   const [search, setSearch] = useState("");
 
   const load = async (isManualRefresh = false) => {
@@ -107,9 +229,21 @@ export default function Admin() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (user?.email === ADMIN_EMAIL) {
-        setIsAdmin(true);
-        load();
+
+      if (user?.email) {
+        const info = await getCurrentAdminRole(user.email);
+        if (info && info.role) {
+          setAdminRole(info.role);
+          setIsAdmin(true);
+          // default tab = first tab this role is allowed to see
+          const firstAllowed = Object.keys(TAB_ACCESS).find((t) =>
+            TAB_ACCESS[t].includes(info.role)
+          );
+          setTab(firstAllowed || "dashboard");
+          load();
+        } else {
+          setIsAdmin(false);
+        }
       } else {
         setIsAdmin(false);
       }
@@ -127,28 +261,75 @@ export default function Admin() {
       supabase.auth.signOut();
       return;
     }
+    // A role can't jump into a tab it isn't allowed to see
+    if (TAB_ACCESS[key] && !TAB_ACCESS[key].includes(adminRole)) {
+      return;
+    }
     setTab(key);
   };
 
-  const updateCallStatus = async (id, status) => {
-    const { error } = await supabase.from("call_requests").update({ status }).eq("id", id);
+  const updateCallStatus = async (call, status) => {
+    const { error } = await supabase.from("call_requests").update({ status }).eq("id", call.id);
     if (error) {
       console.error("updateCallStatus failed:", error);
       alert("Status update failed: " + error.message);
       return;
     }
-    logActivity(`Call request marked as "${status.replace(/_/g, " ")}"`, "call_request", id);
+    logActivity(`Call request marked as "${status.replace(/_/g, " ")}"`, "call_request", call.id);
+    if (status === "scheduled" || status === "callback_requested") {
+      notifyUser(call.user_id, status, {
+        name: call.full_name,
+        mobile: call.mobile_number,
+        scheduledAt: call.scheduled_at
+          ? new Date(call.scheduled_at).toLocaleString("en-IN")
+          : null,
+      });
+    }
     load();
   };
 
-  const updateClaimStatus = async (id, status) => {
-    const { error } = await supabase.from("claim_requests").update({ status }).eq("id", id);
+  const updateCallDetails = async (call, { call_notes, scheduled_at }) => {
+    const { error } = await supabase
+      .from("call_requests")
+      .update({ call_notes, scheduled_at })
+      .eq("id", call.id);
+    if (error) {
+      console.error("updateCallDetails failed:", error);
+      alert("Update failed: " + error.message);
+      return;
+    }
+    logActivity("Call details updated (notes/schedule)", "call_request", call.id);
+    if (scheduled_at && (call.status === "scheduled" || call.status === "callback_requested")) {
+      notifyUser(call.user_id, call.status, {
+        name: call.full_name,
+        mobile: call.mobile_number,
+        scheduledAt: new Date(scheduled_at).toLocaleString("en-IN"),
+      });
+    }
+    load();
+  };
+
+  const updateClaimStatus = async (claim, status) => {
+    const { error } = await supabase.from("claim_requests").update({ status }).eq("id", claim.id);
     if (error) {
       console.error("updateClaimStatus failed:", error);
       alert("Status update failed: " + error.message);
       return;
     }
-    logActivity(`Claim marked as "${status.replace(/_/g, " ")}"`, "claim_request", id);
+    logActivity(`Claim marked as "${status.replace(/_/g, " ")}"`, "claim_request", claim.id);
+
+    if (status === "recovered") {
+      notifyUser(claim.user_id, "claim_recovered", {
+        name: claim.unclaimed_records?.first_name,
+        recoveredAmount: Number(claim.recovered_amount || 0).toLocaleString("en-IN"),
+        successFeeAmount: Number(claim.success_fee_amount || 0).toLocaleString("en-IN"),
+      });
+    } else {
+      notifyUser(claim.user_id, "claim_status_changed", {
+        name: claim.unclaimed_records?.first_name,
+        newStatus: status.replace(/_/g, " "),
+      });
+    }
     load();
   };
 
@@ -205,12 +386,17 @@ export default function Admin() {
     );
   }
 
+  // Tabs visible to this role, passed to Sidebar for filtering
+  const visibleTabs = Object.keys(TAB_ACCESS).filter((t) => TAB_ACCESS[t].includes(adminRole));
+
   return (
     <div className="flex bg-emerald-50/30 min-h-screen">
       <Sidebar
         active={tab}
         onNavigate={handleNavigate}
         counts={{ calls: calls.length, claims: claims.length }}
+        allowedTabs={visibleTabs}
+        role={adminRole}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -236,7 +422,7 @@ export default function Admin() {
             </div>
           )}
 
-          {loading && tab !== "import" && tab !== "dashboard" && tab !== "settings" && tab !== "activity" ? (
+          {loading && tab !== "import" && tab !== "dashboard" && tab !== "settings" && tab !== "activity" && tab !== "manage_admins" ? (
             <div className="space-y-3">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="h-12 bg-emerald-50 animate-pulse rounded-md" />
@@ -257,31 +443,60 @@ export default function Admin() {
                       <th className="py-2 font-medium">Mobile</th>
                       <th className="py-2 font-medium">Record</th>
                       <th className="py-2 font-medium">Status</th>
+                      <th className="py-2 font-medium">Scheduled</th>
+                      <th className="py-2 font-medium text-right">Details</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredCalls.map((c) => (
-                      <tr key={c.id} className="border-b border-gray-100 hover:bg-emerald-50 transition">
-                        <td className="py-3">{c.full_name}</td>
-                        <td className="py-3">{c.mobile_number}</td>
-                        <td className="py-3 text-gray-500">
-                          {c.unclaimed_records?.first_name} {c.unclaimed_records?.last_name} ·{" "}
-                          {c.unclaimed_records?.institution_name}
-                        </td>
-                        <td className="py-3">
-                          <select
-                            value={c.status}
-                            onChange={(e) => updateCallStatus(c.id, e.target.value)}
-                            className="border border-gray-200 bg-white px-2 py-1 text-sm rounded-md"
-                          >
-                            {CALL_STATUSES.map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                      </tr>
+                      <React.Fragment key={c.id}>
+                        <tr className="border-b border-gray-100 hover:bg-emerald-50 transition">
+                          <td className="py-3">{c.full_name}</td>
+                          <td className="py-3">{c.mobile_number}</td>
+                          <td className="py-3 text-gray-500">
+                            {c.unclaimed_records?.first_name} {c.unclaimed_records?.last_name} ·{" "}
+                            {c.unclaimed_records?.institution_name}
+                          </td>
+                          <td className="py-3">
+                            <select
+                              value={c.status}
+                              onChange={(e) => updateCallStatus(c, e.target.value)}
+                              className="border border-gray-200 bg-white px-2 py-1 text-sm rounded-md"
+                            >
+                              {CALL_STATUSES.map((s) => (
+                                <option key={s} value={s}>
+                                  {s.replace(/_/g, " ")}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="py-3 text-gray-500 text-xs">
+                            {c.scheduled_at
+                              ? new Date(c.scheduled_at).toLocaleString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "—"}
+                          </td>
+                          <td className="py-3 text-right">
+                            <button
+                              onClick={() => setExpandedCallId(expandedCallId === c.id ? null : c.id)}
+                              className="text-xs border border-gray-200 px-3 py-1.5 rounded-md hover:border-emerald-500 transition"
+                            >
+                              {expandedCallId === c.id ? "Hide" : "Details"}
+                            </button>
+                          </td>
+                        </tr>
+                        {expandedCallId === c.id && (
+                          <tr>
+                            <td colSpan={6} className="py-4 bg-emerald-50 px-4">
+                              <CallDetailsPanel call={c} onSave={updateCallDetails} />
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -301,17 +516,39 @@ export default function Admin() {
                         {c.unclaimed_records?.first_name} {c.unclaimed_records?.last_name} ·{" "}
                         {c.unclaimed_records?.institution_name}
                       </p>
+                      {c.scheduled_at && (
+                        <p className="text-xs text-amber-700 mb-2">
+                          Scheduled:{" "}
+                          {new Date(c.scheduled_at).toLocaleString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      )}
                       <select
                         value={c.status}
-                        onChange={(e) => updateCallStatus(c.id, e.target.value)}
-                        className="w-full border border-gray-200 bg-white px-2 py-1.5 text-sm rounded-md"
+                        onChange={(e) => updateCallStatus(c, e.target.value)}
+                        className="w-full border border-gray-200 bg-white px-2 py-1.5 text-sm rounded-md mb-2"
                       >
                         {CALL_STATUSES.map((s) => (
                           <option key={s} value={s}>
-                            {s}
+                            {s.replace(/_/g, " ")}
                           </option>
                         ))}
                       </select>
+                      <button
+                        onClick={() => setExpandedCallId(expandedCallId === c.id ? null : c.id)}
+                        className="w-full text-xs border border-gray-200 px-3 py-2 rounded-md hover:border-emerald-500 transition"
+                      >
+                        {expandedCallId === c.id ? "Hide details" : "Open details"}
+                      </button>
+                      {expandedCallId === c.id && (
+                        <div className="mt-3">
+                          <CallDetailsPanel call={c} onSave={updateCallDetails} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -344,7 +581,7 @@ export default function Admin() {
                           <td className="py-3">
                             <select
                               value={c.status}
-                              onChange={(e) => updateClaimStatus(c.id, e.target.value)}
+                              onChange={(e) => updateClaimStatus(c, e.target.value)}
                               className="border border-gray-200 bg-white px-2 py-1 text-sm rounded-md"
                             >
                               {CLAIM_STATUSES.map((s) => (
@@ -382,7 +619,7 @@ export default function Admin() {
                         {expandedClaimId === c.id && (
                           <tr>
                             <td colSpan={5} className="py-4 bg-emerald-50 px-4">
-                              <SettlementPanel claim={c} onUpdated={load} />
+                              <ClaimExpandPanel claim={c} onUpdated={load} />
                             </td>
                           </tr>
                         )}
@@ -410,7 +647,7 @@ export default function Admin() {
                       <div className="flex gap-2 mb-3">
                         <select
                           value={c.status}
-                          onChange={(e) => updateClaimStatus(c.id, e.target.value)}
+                          onChange={(e) => updateClaimStatus(c, e.target.value)}
                           className="flex-1 border border-gray-200 bg-white px-2 py-1.5 text-sm rounded-md"
                         >
                           {CLAIM_STATUSES.map((s) => (
@@ -435,7 +672,7 @@ export default function Admin() {
                       </button>
                       {expandedClaimId === c.id && (
                         <div className="mt-3">
-                          <SettlementPanel claim={c} onUpdated={load} />
+                          <ClaimExpandPanel claim={c} onUpdated={load} />
                         </div>
                       )}
                     </div>
@@ -448,9 +685,13 @@ export default function Admin() {
           ) : tab === "settings" ? (
             <Settings />
           ) : tab === "settlements" ? (
-            <Settlements claims={claims} />
+            <ErrorBoundary label="Settlements">
+              <Settlements />
+            </ErrorBoundary>
           ) : tab === "activity" ? (
             <ActivityLog />
+          ) : tab === "manage_admins" ? (
+            <ManageAdmins />
           ) : null}
         </div>
       </div>
